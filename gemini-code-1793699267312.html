@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADHD Budget Planner — Micro App</title>
+    
+    <!-- Fonts: Onest & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Onest:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            bg: '#FFFFFF',
+                            text: '#111111',
+                            ink: '#0A0A0A',
+                            muted: '#8D8D8D',
+                            subtle: '#B6B6B6',
+                            border: '#E6E5E2',
+                            surface: '#F1F0EE',
+                            surface2: '#E3E2DF',
+                            hero: '#ECEBE9',
+                            neutral2: '#C9C9C9',
+                            orange: '#B15F2C',
+                            'orange-light': '#CF8047',
+                            'orange-dark': '#97501F'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Onest', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    },
+                    borderRadius: {
+                        'card-lg': '2rem',
+                        'card-sm': '1.25rem',
+                        'control': '0.875rem'
+                    },
+                    boxShadow: {
+                        'subtle': '0 8px 30px rgba(17,17,17,0.06)',
+                        'modal': '0 20px 60px rgba(17,17,17,0.15)'
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-brand-bg text-brand-text font-sans antialiased selection:bg-brand-orange selection:text-white min-h-screen flex flex-col justify-between">
+
+    <!-- Preloader Lumora Style -->
+    <div id="loader" class="loader-overlay">
+        <div class="text-right pr-6 md:pr-12">
+            <div id="loader-counter" class="loader-num">0%</div>
+            <div class="text-xs uppercase tracking-widest text-neutral-500 font-mono mt-2">ADHD Budget Planner • Launching</div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTAINER -->
+    <div id="app-shell" class="min-h-screen flex flex-col">
+        
+        <!-- Header Navigation -->
+        <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-brand-border">
+            <div class="max-w-[88rem] mx-auto px-5 md:px-8 h-20 flex items-center justify-between">
+                <!-- Logo -->
+                <button onclick="navTo('home')" class="flex items-center gap-3 text-left group">
+                    <div class="w-9 h-9 rounded-full bg-brand-ink text-white flex items-center justify-center font-bold text-sm tracking-tighter group-hover:scale-105 transition-transform">
+                        BP
+                    </div>
+                    <div>
+                        <span class="font-bold tracking-tight text-base block leading-none">ADHD Budget Planner</span>
+                        <span class="text-[10px] text-brand-muted uppercase tracking-widest font-mono">Calm Finance</span>
+                    </div>
+                </button>
+
+                <!-- Navigation Desk -->
+                <nav class="hidden lg:flex items-center gap-1 bg-brand-surface p-1.5 rounded-full border border-brand-border">
+                    <button id="nav-home" onclick="navTo('home')" class="nav-btn active">Accueil</button>
+                    <button id="nav-today" onclick="navTo('today')" class="nav-btn">Aujourd'hui</button>
+                    <button id="nav-envelopes" onclick="navTo('envelopes')" class="nav-btn">Enveloppes</button>
+                    <button id="nav-calendar" onclick="navTo('calendar')" class="nav-btn">Calendrier</button>
+                    <button id="nav-goals" onclick="navTo('goals')" class="nav-btn">Objectifs & Épargne</button>
+                    <button id="nav-debt" onclick="navTo('debt')" class="nav-btn">Dettes</button>
+                </nav>
+
+                <!-- Action & Mobile menu button -->
+                <div class="flex items-center gap-3">
+                    <span id="live-clock" class="hidden sm:inline-block font-mono text-xs text-brand-muted bg-brand-surface px-3 py-1.5 rounded-full border border-brand-border">00:00:00 UTC</span>
+                    <button onclick="openQuickLogModal()" class="btn-pill-orange text-xs py-2 px-4 shadow-sm flex items-center gap-2">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        <span>Dépense Rapide</span>
+                    </button>
+                    <button onclick="navTo('settings')" class="p-2.5 rounded-full bg-brand-surface hover:bg-brand-surface2 transition-colors border border-brand-border text-brand-text" title="Paramètres">
+                        <i data-lucide="settings" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="toggleMobileMenu()" class="lg:hidden p-2.5 rounded-full bg-brand-ink text-white">
+                        <i data-lucide="menu" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Fullscreen Mobile Nav Menu -->
+        <div id="mobile-menu" class="fixed inset-0 bg-brand-ink z-50 text-white flex flex-col justify-between p-8 hidden">
+            <div class="flex justify-between items-center">
+                <span class="font-mono text-xs text-neutral-400">NAVIGATION</span>
+                <button onclick="toggleMobileMenu()" class="p-2 rounded-full bg-neutral-800 text-white">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div class="flex flex-col gap-6 text-2xl font-semibold">
+                <button onclick="navTo('home'); toggleMobileMenu()" class="text-left hover:text-brand-orange-light">Accueil</button>
+                <button onclick="navTo('today'); toggleMobileMenu()" class="text-left hover:text-brand-orange-light">Aujourd'hui</button>
+                <button onclick="navTo('envelopes'); toggleMobileMenu()" class="text-left hover:text-brand-orange-light">Enveloppes</button>
+                <button onclick="navTo('calendar'); toggleMobileMenu()" class="text-left hover:text-brand-orange-light">Calendrier</button>
+                <button onclick="navTo('goals'); toggleMobileMenu()" class="text-left hover:text-brand-orange-light">Objectifs & Épargne</button>
+                <button onclick="navTo('debt'); toggleMobileMenu()" class="text-left hover:text-brand-orange-light">Dettes</button>
+                <button onclick="navTo('settings'); toggleMobileMenu()" class="text-left hover:text-brand-orange-light">Paramètres</button>
+            </div>
+            <div class="border-t border-neutral-800 pt-6 text-xs text-neutral-400 flex justify-between">
+                <span>ADHD Budget Planner v1.0</span>
+                <span>Mode Sérénité</span>
+            </div>
+        </div>
+
+        <!-- APP CONTENT VIEWS -->
+        <main class="flex-grow">
+            
+            <!-- 1. ACCUEIL (HOME VIEW - LUMORA REDESIGN) -->
+            <section id="view-home" class="page-view active">
+                
+                <!-- Hero Section Lumora Style -->
+                <div class="relative overflow-hidden pt-12 pb-20 md:py-24 bg-gradient-to-b from-white via-brand-surface/30 to-white">
+                    <div class="absolute -top-10 left-1/2 -translate-x-1/2 text-[14vw] font-bold text-brand-ink/[0.03] select-none pointer-events-none whitespace-nowrap uppercase tracking-tighter">
+                        ADHD FREEDOM
+                    </div>
+
+                    <div class="max-w-[88rem] mx-auto px-5 md:px-8 relative z-10">
+                        <div class="max-w-3xl">
+                            <div class="section-badge mb-6">
+                                <span class="badge-dot"></span>
+                                <span>PERSONAL FINANCE, MADE SIMPLER</span>
+                            </div>
+                            
+                            <h1 class="hero-title text-4xl sm:text-6xl lg:text-7xl font-semibold text-brand-ink tracking-tight mb-8">
+                                Your money. Clearer. Calmer. More under control.
+                            </h1>
+
+                            <p class="text-lg sm:text-xl text-brand-muted font-normal leading-relaxed mb-10 max-w-2xl">
+                                A simple financial command center to track spending, plan ahead, and understand what you can safely spend without turning budgeting into another overwhelming task.
+                            </p>
+
+                            <div class="flex flex-wrap items-center gap-4">
+                                <button onclick="navTo('today')" class="btn-pill-orange text-base px-8 py-4 shadow-lg group">
+                                    <span>Start Planning</span>
+                                    <i data-lucide="arrow-right" class="w-5 h-5 group-hover:translate-x-1 transition-transform"></i>
+                                </button>
+                                <button onclick="navTo('envelopes')" class="btn-pill-outline text-base px-8 py-4">
+                                    <span>Explore Your Budget</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Hero Feature Card Preview -->
+                        <div class="mt-16 rounded-card-lg bg-brand-ink text-white p-8 md:p-12 shadow-2xl relative overflow-hidden border border-neutral-800">
+                            <div class="absolute top-0 right-0 w-96 h-96 bg-brand-orange/10 rounded-full blur-3xl pointer-events-none"></div>
+                            
+                            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                                <div class="lg:col-span-5 space-y-4">
+                                    <span class="text-xs font-mono uppercase tracking-widest text-brand-orange-light font-semibold">COMMAND CENTER AT A GLANCE</span>
+                                    <h2 class="text-3xl font-semibold">Safe to Spend Overview</h2>
+                                    <p class="text-neutral-400 text-sm leading-relaxed">
+                                        Know exactly what's available for daily spending after factoring in income, upcoming bills, and savings commitments.
+                                    </p>
+                                    <div class="pt-4 flex items-center gap-6">
+                                        <div>
+                                            <div class="text-xs text-neutral-500 uppercase font-mono">Disponibilité</div>
+                                            <div class="text-2xl font-bold text-white font-mono" id="hero-sts-val">$240.00</div>
+                                        </div>
+                                        <div class="h-8 w-px bg-neutral-800"></div>
+                                        <div>
+                                            <div class="text-xs text-neutral-500 uppercase font-mono">Prochain Chèque</div>
+                                            <div class="text-2xl font-bold text-brand-orange-light font-mono" id="hero-payday-val">Dans 5j</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div class="bg-neutral-900/80 backdrop-blur p-6 rounded-card-sm border border-neutral-800">
+                                        <div class="flex items-center justify-between text-neutral-400 text-xs font-mono mb-2">
+                                            <span>REVENUS REÇUS</span>
+                                            <i data-lucide="trending-up" class="w-4 h-4 text-emerald-400"></i>
+                                        </div>
+                                        <div class="text-3xl font-semibold font-mono text-white" id="home-inc-val">$3,400.00</div>
+                                        <div class="mt-3 h-1.5 bg-neutral-800 rounded-full overflow-hidden">
+                                            <div class="h-full bg-emerald-500 rounded-full" style="width: 100%"></div>
+                                        </div>
+                                    </div>
+                                    <div class="bg-neutral-900/80 backdrop-blur p-6 rounded-card-sm border border-neutral-800">
+                                        <div class="flex items-center justify-between text-neutral-400 text-xs font-mono mb-2">
+                                            <span>DÉPENSES DU MOIS</span>
+                                            <i data-lucide="trending-down" class="w-4 h-4 text-brand-orange-light"></i>
+                                        </div>
+                                        <div class="text-3xl font-semibold font-mono text-white" id="home-exp-val">$1,250.00</div>
+                                        <div class="mt-3 h-1.5 bg-neutral-800 rounded-full overflow-hidden">
+                                            <div class="h-full bg-brand-orange rounded-full" style="width: 36%"></div>
+                                        </div>
+                                    </div>
+                                    <div class="bg-neutral-900/80 backdrop-blur p-6 rounded-card-sm border border-neutral-800 sm:col-span-2 flex items-center justify-between">
+                                        <div>
+                                            <div class="text-xs text-neutral-400 font-mono">OBJECTIF EN COURS</div>
+                                            <div class="font-semibold text-white mt-1">Fonds d'Urgence</div>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="text-sm font-mono text-brand-orange-light font-bold">$1,200 / $2,500</div>
+                                            <div class="text-xs text-neutral-500">48% atteint</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Editorial Grid: 3 Core Pillars -->
+                <div class="py-20 max-w-[88rem] mx-auto px-5 md:px-8 border-t border-brand-border">
+                    <div class="mb-12">
+                        <div class="section-badge mb-3">
+                            <span class="badge-dot"></span>
+                            <span>FONCTIONNALITÉS CLÉS</span>
+                        </div>
+                        <h2 class="text-3xl sm:text-4xl font-semibold text-brand-ink">Conçu pour réduire la charge mentale</h2>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <div class="bg-brand-surface p-8 rounded-card-lg border border-brand-border hover:shadow-subtle transition-all">
+                            <div class="w-12 h-12 rounded-full bg-white flex items-center justify-center text-brand-orange shadow-sm mb-6 border border-brand-border">
+                                <i data-lucide="shield-check" class="w-6 h-6"></i>
+                            </div>
+                            <h3 class="text-xl font-semibold mb-3">Reste à Dépenser Calculé</h3>
+                            <p class="text-brand-muted text-sm leading-relaxed mb-6">
+                                Une estimation dynamique sans calcul mental. Sachez ce que vous pouvez dépenser aujourd'hui sans compromettre vos factures de fin de mois.
+                            </p>
+                            <button onclick="navTo('today')" class="text-xs font-semibold text-brand-orange uppercase font-mono tracking-wider flex items-center gap-1 hover:gap-2 transition-all">
+                                <span>Voir Aujourd'hui</span> →
+                            </button>
+                        </div>
+
+                        <div class="bg-brand-surface p-8 rounded-card-lg border border-brand-border hover:shadow-subtle transition-all">
+                            <div class="w-12 h-12 rounded-full bg-white flex items-center justify-center text-brand-orange shadow-sm mb-6 border border-brand-border">
+                                <i data-lucide="calendar" class="w-6 h-6"></i>
+                            </div>
+                            <h3 class="text-xl font-semibold mb-3">Calendrier Visuel Sans Stress</h3>
+                            <p class="text-brand-muted text-sm leading-relaxed mb-6">
+                                Visualisez vos jours de paie et l'échéance de vos factures au même endroit. Évitez les mauvaises surprises et l'oubli involontaire.
+                            </p>
+                            <button onclick="navTo('calendar')" class="text-xs font-semibold text-brand-orange uppercase font-mono tracking-wider flex items-center gap-1 hover:gap-2 transition-all">
+                                <span>Ouvrir Calendrier</span> →
+                            </button>
+                        </div>
+
+                        <div class="bg-brand-surface p-8 rounded-card-lg border border-brand-border hover:shadow-subtle transition-all">
+                            <div class="w-12 h-12 rounded-full bg-white flex items-center justify-center text-brand-orange shadow-sm mb-6 border border-brand-border">
+                                <i data-lucide="target" class="w-6 h-6"></i>
+                            </div>
+                            <h3 class="text-xl font-semibold mb-3">Objectifs & Dette Allégée</h3>
+                            <p class="text-brand-muted text-sm leading-relaxed mb-6">
+                                Suivez vos projets ou remboursez vos dettes avec les stratégies Boule de Neige ou Avalanche, sans aucune culpabilité.
+                            </p>
+                            <button onclick="navTo('goals')" class="text-xs font-semibold text-brand-orange uppercase font-mono tracking-wider flex items-center gap-1 hover:gap-2 transition-all">
+                                <span>Gérer les Objectifs</span> →
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Call to Action Footer Panel -->
+                <div class="max-w-[88rem] mx-auto px-5 md:px-8 pb-20">
+                    <div class="bg-brand-hero p-10 md:p-16 rounded-card-lg border border-brand-border flex flex-col md:flex-row items-center justify-between gap-8">
+                        <div>
+                            <h2 class="text-2xl sm:text-3xl font-semibold mb-2">Prêt à simplifier votre budget ?</h2>
+                            <p class="text-brand-muted text-sm max-w-xl">
+                                Configurez vos paramètres en 2 minutes ou commencez immédiatement à enregistrer vos transactions sans pression.
+                            </p>
+                        </div>
+                        <div class="flex gap-4">
+                            <button onclick="navTo('today')" class="btn-pill-orange text-sm px-6 py-3">
+                                Ouvrir mon Command Center
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- 2. AUJOURD'HUI (TODAY VIEW) -->
+            <section id="view-today" class="page-view">
+                <div class="max-w-[88rem] mx-auto px-5 md:px-8 py-10">
+                    <div class="flex items-center justify-between mb-8">
+                        <div>
+                            <div class="section-badge mb-2"><span class="badge-dot"></span><span>APERÇU DU JOUR</span></div>
+                            <h1 class="text-3xl font-semibold">Aujourd'hui & Reste à Dépenser</h1>
+                        </div>
+                        <button onclick="openQuickLogModal()" class="btn-pill-orange text-sm px-5 py-2.5 flex items-center gap-2">
+                            <i data-lucide="plus" class="w-4 h-4"></i> Enregistrer Dépense
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                        <!-- SAFE TO SPEND CARD (DARK) -->
+                        <div class="lg:col-span-6 bg-brand-ink text-white p-8 md:p-10 rounded-card-lg shadow-xl relative overflow-hidden border border-neutral-800 flex flex-col justify-between">
+                            <div>
+                                <span class="text-xs font-mono uppercase tracking-widest text-brand-orange-light font-semibold">ESTIMATION EN TEMPS RÉEL</span>
+                                <div class="text-5xl md:text-6xl font-bold font-mono my-6 text-white" id="today-sts-amount">$0.00</div>
+                                <div class="text-xs uppercase tracking-widest text-neutral-400 font-mono">SAFE TO SPEND (RESTE À DÉPENSER)</div>
+                            </div>
+
+                            <div class="mt-8 pt-6 border-t border-neutral-800 space-y-3">
+                                <div class="flex justify-between text-xs text-neutral-400">
+                                    <span>Fonds Disponibles Simulés :</span>
+                                    <span class="font-mono text-white font-semibold" id="today-avail-funds">$0.00</span>
+                                </div>
+                                <div class="flex justify-between text-xs text-neutral-400">
+                                    <span>Engagements Réservés (Factures + Dettes + Épargne) :</span>
+                                    <span class="font-mono text-brand-orange-light font-semibold" id="today-reserved-commit">$0.00</span>
+                                </div>
+                                <p class="text-[11px] text-neutral-500 italic mt-2">
+                                    Le montant Safe to Spend est une estimation basée sur vos données saisies. Il garantit que vos factures à venir sont réservées.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- TODAY SUMMARY METRICS & COMING UP -->
+                        <div class="lg:col-span-6 space-y-6">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="bg-brand-surface p-6 rounded-card-sm border border-brand-border">
+                                    <div class="text-xs text-brand-muted font-mono mb-1 uppercase">Prochaine Paie</div>
+                                    <div class="text-xl font-bold font-mono text-brand-ink" id="today-next-payday-date">Non configuré</div>
+                                    <div class="text-xs text-brand-orange mt-1 font-mono" id="today-next-payday-amount">$0.00 attendu</div>
+                                </div>
+                                <div class="bg-brand-surface p-6 rounded-card-sm border border-brand-border">
+                                    <div class="text-xs text-brand-muted font-mono mb-1 uppercase">Prochaine Facture</div>
+                                    <div class="text-xl font-bold font-mono text-brand-ink" id="today-next-bill-name">Aucune</div>
+                                    <div class="text-xs text-rose-600 mt-1 font-mono" id="today-next-bill-amount">$0.00</div>
+                                </div>
+                            </div>
+
+                            <!-- Recent Logged Today -->
+                            <div class="bg-white p-6 rounded-card-sm border border-brand-border shadow-subtle">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="font-semibold text-sm uppercase font-mono text-brand-muted">Dépenses Enregistrées Aujourd'hui</h3>
+                                    <span class="text-xs text-brand-muted" id="today-count-badge">0 transaction</span>
+                                </div>
+                                <div id="today-transactions-list" class="space-y-3 max-h-56 overflow-y-auto">
+                                    <div class="text-sm text-brand-muted italic py-4 text-center">Aucune dépense enregistrée aujourd'hui.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. ENVELOPPES (MONTHLY BUDGET VIEW) -->
+            <section id="view-envelopes" class="page-view">
+                <div class="max-w-[88rem] mx-auto px-5 md:px-8 py-10">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+                        <div>
+                            <div class="section-badge mb-2"><span class="badge-dot"></span><span>MODE ENVELOPPES MENSUELLES</span></div>
+                            <h1 class="text-3xl font-semibold">Allocation & Budgets par Catégorie</h1>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <select id="budget-month-select" onchange="renderEnvelopes()" class="input-field text-sm font-mono font-medium py-2 px-3">
+                                <option value="2026-11">Novembre 2026</option>
+                                <option value="2026-12">Décembre 2026</option>
+                            </select>
+                            <button onclick="openCategoryModal()" class="btn-pill-outline text-xs px-4 py-2">
+                                + Ajouter Catégorie
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Envelopes Summary Bar -->
+                    <div class="bg-brand-surface p-6 rounded-card-lg border border-brand-border mb-8 grid grid-cols-1 md:grid-cols-3 gap-6 text-center md:text-left">
+                        <div>
+                            <div class="text-xs text-brand-muted uppercase font-mono">Total Budget Planifié</div>
+                            <div class="text-2xl font-bold font-mono text-brand-ink mt-1" id="env-total-planned">$0.00</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-brand-muted uppercase font-mono">Total Dépensé</div>
+                            <div class="text-2xl font-bold font-mono text-brand-orange mt-1" id="env-total-spent">$0.00</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-brand-muted uppercase font-mono">Disponible dans Enveloppes</div>
+                            <div class="text-2xl font-bold font-mono text-emerald-700 mt-1" id="env-total-remaining">$0.00</div>
+                        </div>
+                    </div>
+
+                    <!-- Envelope List Grid -->
+                    <div id="envelopes-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                </div>
+            </section>
+
+            <!-- 4. CALENDRIER (CALENDAR VIEW) -->
+            <section id="view-calendar" class="page-view">
+                <div class="max-w-[88rem] mx-auto px-5 md:px-8 py-10">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+                        <div>
+                            <div class="section-badge mb-2"><span class="badge-dot"></span><span>ÉCHÉANCIER VISUEL</span></div>
+                            <h1 class="text-3xl font-semibold">Calendrier Financier</h1>
+                        </div>
+                        <button onclick="openBillModal()" class="btn-pill-orange text-xs px-4 py-2.5">
+                            + Ajouter Facture / Échéance
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                        <!-- Agenda List View -->
+                        <div class="lg:col-span-5 bg-white p-6 rounded-card-lg border border-brand-border shadow-subtle">
+                            <h3 class="font-semibold text-lg mb-4 flex items-center justify-between">
+                                <span>Événements à Venir</span>
+                                <span class="text-xs font-mono text-brand-muted">30 PROCHAINS JOURS</span>
+                            </h3>
+                            <div id="calendar-agenda-list" class="space-y-4 max-h-[600px] overflow-y-auto pr-1"></div>
+                        </div>
+
+                        <!-- Calendar Grid View -->
+                        <div class="lg:col-span-7 bg-brand-surface p-6 rounded-card-lg border border-brand-border">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="font-bold text-lg font-mono uppercase" id="cal-month-title">Novembre 2026</h3>
+                                <div class="flex gap-2">
+                                    <button class="p-2 rounded-full bg-white border border-brand-border hover:bg-brand-surface2" onclick="changeCalMonth(-1)">←</button>
+                                    <button class="p-2 rounded-full bg-white border border-brand-border hover:bg-brand-surface2" onclick="changeCalMonth(1)">→</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Weekdays Header -->
+                            <div class="grid grid-cols-7 gap-1 text-center font-mono text-xs text-brand-muted mb-2 font-semibold">
+                                <div>Lun</div><div>Mar</div><div>Mer</div><div>Jeu</div><div>Ven</div><div>Sam</div><div>Dim</div>
+                            </div>
+
+                            <!-- Days Grid -->
+                            <div id="calendar-days-grid" class="grid grid-cols-7 gap-1 text-xs"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. OBJECTIFS & ÉPARGNE (GOALS VIEW) -->
+            <section id="view-goals" class="page-view">
+                <div class="max-w-[88rem] mx-auto px-5 md:px-8 py-10">
+                    <div class="flex justify-between items-center mb-8">
+                        <div>
+                            <div class="section-badge mb-2"><span class="badge-dot"></span><span>FONDS & PROJETS</span></div>
+                            <h1 class="text-3xl font-semibold">Objectifs d'Épargne</h1>
+                        </div>
+                        <button onclick="openGoalModal()" class="btn-pill-orange text-xs px-4 py-2.5">
+                            + Nouvel Objectif / Fonds
+                        </button>
+                    </div>
+
+                    <!-- Goals Grid -->
+                    <div id="goals-list-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                </div>
+            </section>
+
+            <!-- 6. DETTES (DEBT VIEW) -->
+            <section id="view-debt" class="page-view">
+                <div class="max-w-[88rem] mx-auto px-5 md:px-8 py-10">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+                        <div>
+                            <div class="section-badge mb-2"><span class="badge-dot"></span><span>PLAN DE REMBOURSEMENT</span></div>
+                            <h1 class="text-3xl font-semibold">Gestion des Dettes</h1>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <select id="debt-strategy-select" onchange="renderDebts()" class="input-field text-xs font-mono py-2 px-3">
+                                <option value="avalanche">Stratégie Avalanche (Taux le + élevé)</option>
+                                <option value="snowball">Stratégie Boule de Neige (Plus petit solde)</option>
+                            </select>
+                            <button onclick="openDebtModal()" class="btn-pill-orange text-xs px-4 py-2">
+                                + Ajouter Dette
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Debt Summary Panel -->
+                    <div class="bg-brand-ink text-white p-8 rounded-card-lg border border-neutral-800 mb-8 grid grid-cols-1 sm:grid-cols-3 gap-6">
+                        <div>
+                            <div class="text-xs font-mono uppercase text-neutral-400">Dette Totale Restante</div>
+                            <div class="text-3xl font-bold font-mono mt-1 text-white" id="debt-total-balance">$0.00</div>
+                        </div>
+                        <div>
+                            <div class="text-xs font-mono uppercase text-neutral-400">Total Mensualités Minimum</div>
+                            <div class="text-3xl font-bold font-mono mt-1 text-brand-orange-light" id="debt-total-minpay">$0.00</div>
+                        </div>
+                        <div>
+                            <div class="text-xs font-mono uppercase text-neutral-400">Ordre de Priorité Recommandé</div>
+                            <div class="text-sm font-semibold mt-2 text-neutral-300" id="debt-priority-hint">Stratégie activée</div>
+                        </div>
+                    </div>
+
+                    <div id="debts-list-container" class="space-y-4"></div>
+                </div>
+            </section>
+
+            <!-- 7. PARAMÈTRES (SETTINGS VIEW) -->
+            <section id="view-settings" class="page-view">
+                <div class="max-w-4xl mx-auto px-5 md:px-8 py-10">
+                    <div class="section-badge mb-2"><span class="badge-dot"></span><span>PREFERENCES</span></div>
+                    <h1 class="text-3xl font-semibold mb-8">Paramètres de l'Application</h1>
+
+                    <div class="bg-white p-8 rounded-card-lg border border-brand-border space-y-8 shadow-subtle">
+                        <div>
+                            <h3 class="font-semibold text-lg mb-4">Préférences Générales</h3>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-xs font-mono uppercase text-brand-muted mb-2">Devise Principale</label>
+                                    <select id="setting-currency" class="input-field w-full">
+                                        <option value="USD">USD ($)</option>
+                                        <option value="EUR">EUR (€)</option>
+                                        <option value="GBP">GBP (£)</option>
+                                        <option value="CAD">CAD ($)</option>
+                                        <option value="MAD">MAD (DH)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-mono uppercase text-brand-muted mb-2">Solde Initial Manuel ($)</label>
+                                    <input type="number" id="setting-starting-balance" class="input-field w-full" value="500">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-brand-border pt-6">
+                            <h3 class="font-semibold text-lg mb-4">Fréquence de Paie Principale</h3>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-xs font-mono uppercase text-brand-muted mb-2">Prochain Jour de Paie</label>
+                                    <input type="date" id="setting-next-payday" class="input-field w-full">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-mono uppercase text-brand-muted mb-2">Montant Estimé de Paie ($)</label>
+                                    <input type="number" id="setting-payday-amount" class="input-field w-full" value="2000">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-brand-border pt-6 flex justify-between items-center">
+                            <button onclick="resetDataToDefault()" class="text-xs font-mono text-rose-600 hover:underline">
+                                Réinitialiser les données Démo
+                            </button>
+                            <button onclick="saveSettings()" class="btn-pill-orange text-sm px-6 py-2.5">
+                                Enregistrer les Paramètres
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer Lumora Editorial Style -->
+        <footer class="border-t border-brand-border bg-white mt-20 py-12">
+            <div class="max-w-[88rem] mx-auto px-5 md:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-7 h-7 rounded-full bg-brand-ink text-white flex items-center justify-center font-bold text-xs">BP</div>
+                    <span class="text-xs font-mono uppercase text-brand-muted">ADHD Budget Planner • Designed for clarity and calm</span>
+                </div>
+                <div class="text-xs text-brand-muted">
+                    Safe to Spend est une estimation indicative basée sur vos déclarations.
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- MODAL: DÉPENSE RAPIDE (QUICK LOG EXPENSE) -->
+    <div id="modal-quicklog" class="modal-backdrop hidden">
+        <div class="modal-card">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-semibold">Enregistrer une Transaction</h3>
+                <button onclick="closeModal('modal-quicklog')" class="p-1 text-brand-muted hover:text-brand-ink"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form onsubmit="handleLogTransaction(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-mono uppercase text-brand-muted mb-1">Type</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" id="type-expense-btn" onclick="setTxType('expense')" class="py-2 rounded-control text-xs font-bold bg-brand-ink text-white">Dépense</button>
+                        <button type="button" id="type-income-btn" onclick="setTxType('income')" class="py-2 rounded-control text-xs font-bold bg-brand-surface text-brand-text border border-brand-border">Revenu</button>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-mono uppercase text-brand-muted mb-1">Montant ($)</label>
+                    <input type="number" step="0.01" id="tx-amount" required class="input-field text-lg font-mono font-bold" placeholder="0.00">
+                </div>
+                <div>
+                    <label class="block text-xs font-mono uppercase text-brand-muted mb-1">Catégorie / Enveloppe</label>
+                    <select id="tx-category" class="input-field"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-mono uppercase text-brand-muted mb-1">Date</label>
+                    <input type="date" id="tx-date" required class="input-field">
+                </div>
+                <div>
+                    <label class="block text-xs font-mono uppercase text-brand-muted mb-1">Note / Libellé (Optionnel)</label>
+                    <input type="text" id="tx-note" class="input-field" placeholder="ex. Épicerie, Café, Salaire...">
+                </div>
+                <div class="pt-4 flex justify-end gap-3">
+                    <button type="button" onclick="closeModal('modal-quicklog')" class="btn-pill-outline text-xs px-4 py-2">Annuler</button>
+                    <button type="submit" class="btn-pill-orange text-xs px-6 py-2">Valider</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: FACTURE / ÉCHÉANCE -->
+    <div id="modal-bill" class="modal-backdrop hidden">
+        <div class="modal-card">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-semibold">Ajouter une Facture</h3>
+                <button onclick="closeModal('modal-bill')" class="p-1 text-brand-muted hover:text-brand-ink"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form onsubmit="handleAddBill(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-mono uppercase text-brand-muted mb-1">Nom de la Facture</label>
+                    <input type="text" id="bill-name" required class="input-field" placeholder="ex. Loyer, Électricité, Netflix">
+                </div>
+                <div>
+                    <label class="block text-xs font-mono uppercase text-brand-muted mb-1">Montant ($)</label>
+                    <input type="number" step="0.01" id="bill-amount" required class="input-field font-mono" placeholder="0.00">
+                </div>
+                <div>
+                    <label class="block text-xs font-mono uppercase text-brand-muted mb-1">Date d'Échéance</label>
+                    <input type="date" id="bill-date" required class="input-field">
+                </div>
+                <div class="pt-4 flex justify-end gap-3">
+                    <button type="button" onclick="closeModal('modal-bill')" class="btn-pill-outline text-xs px-4 py-2">Annuler</button>
+                    <button type="submit" class="btn-pill-orange text-xs px-6 py-2">Ajouter Facture</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: OBJECTIF / FONDS -->
+    <div id="modal-goal" class="modal-backdrop hidden">
+        <div class="modal-card">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-semibold">Créer un Objectif d'Épargne</h3>
+                <button onclick="closeModal('modal-goal')" class="p-1 text-brand-muted hover:text-brand-ink"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form onsubmit="handleAddGoal(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-mono uppercase text-brand-muted mb-1">Nom du Projet</label>
+                    <input type="text" id="goal-title" required class="input-field" placeholder="ex. Vacances, Fond de Secours">
+                </div>
+                <div>
+                    <label class="block text-xs font-mono uppercase text-brand-muted mb-1">Montant Cible ($)</label>
+                    <input type="number" step="0.01" id="goal-target" required class="input-field font-mono" placeholder="1000.00">
+                </div>
+                <div>
+                    <label class="block text-xs font-mono uppercase text-brand-muted mb-1">Montant Déjà Épargné ($)</label>
+                    <input type="number" step="0.01" id="goal-current" class="input-field font-mono" value="0.00">
+                </div>
+                <div class="pt-4 flex justify-end gap-3">
+                    <button type="button" onclick="closeModal('modal-goal')" class="btn-pill-outline text-xs px-4 py-2">Annuler</button>
+                    <button type="submit" class="btn-pill-orange text-xs px-6 py-2">Créer l'Objectif</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: DETTE -->
+    <div id="modal-debt" class="modal-backdrop hidden">
+        <div class="modal-card">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-semibold">Ajouter une Dette</h3>
+                <button onclick="closeModal('modal-debt')" class="p-1 text-brand-muted hover:text-brand-ink"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form onsubmit="handleAddDebt(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-mono uppercase text-brand-muted mb-1">Nom du Prêteur / Dette</label>
+                    <input type="text" id="debt-name" required class="input-field" placeholder="ex. Carte de Crédit, Prêt Personnel">
+                </div>
+                <div>
+                    <label class="block text-xs font-mono uppercase text-brand-muted mb-1">Solde Restant ($)</label>
+                    <input type="number" step="0.01" id="debt-balance" required class="input-field font-mono" placeholder="1500.00">
+                </div>
+                <div>
+                    <label class="block text-xs font-mono uppercase text-brand-muted mb-1">Paiement Mensuel Minimum ($)</label>
+                    <input type="number" step="0.01" id="debt-minpay" required class="input-field font-mono" placeholder="50.00">
+                </div>
+                <div>
+                    <label class="block text-xs font-mono uppercase text-brand-muted mb-1">Taux d'Intérêt Annuel (%)</label>
+                    <input type="number" step="0.1" id="debt-rate" class="input-field font-mono" placeholder="18.5">
+                </div>
+                <div class="pt-4 flex justify-end gap-3">
+                    <button type="button" onclick="closeModal('modal-debt')" class="btn-pill-outline text-xs px-4 py-2">Annuler</button>
+                    <button type="submit" class="btn-pill-orange text-xs px-6 py-2">Enregistrer Dette</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JS Logic -->
+    <script src="script.js"></script>
+</body>
+</html>
